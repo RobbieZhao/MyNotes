@@ -11,3 +11,14 @@ export type Note = {
 export type NoteSummary = Pick<Note, "id" | "title" | "slug" | "updated_at">;
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+export type TodoListItem = {
+  id: string;
+  text: string;
+  done: boolean;
+};
+
+export type TodoListData = {
+  title: string;
+  items: TodoListItem[];
+};

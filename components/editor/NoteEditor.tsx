@@ -63,7 +63,7 @@ export default function NoteEditor({
           onContentChange={setContent}
         />
         <Box sx={{ flex: 1, minWidth: 0, display: "flex" }}>
-          <MdxPreview content={content} />
+          <MdxPreview content={content} noteId={noteId} />
         </Box>
       </Box>
     </Box>

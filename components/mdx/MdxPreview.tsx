@@ -7,10 +7,17 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import { serializeMdx } from "@/app/actions/mdx";
+import { NoteContextProvider } from "@/components/NoteContextProvider";
 import { mdxComponents } from "@/lib/mdx/components";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function MdxPreview({ content }: { content: string }) {
+export default function MdxPreview({
+  content,
+  noteId,
+}: {
+  content: string;
+  noteId: string;
+}) {
   const debouncedContent = useDebounce(content, 400);
   const [serialized, setSerialized] =
     useState<MDXRemoteSerializeResult | null>(null);
@@ -78,7 +85,9 @@ export default function MdxPreview({ content }: { content: string }) {
 
       {serialized && (
         <Box className="prose-preview">
-          <MDXRemote {...serialized} components={mdxComponents} />
+          <NoteContextProvider noteId={noteId}>
+            <MDXRemote {...serialized} components={mdxComponents} />
+          </NoteContextProvider>
         </Box>
       )}
     </Box>
