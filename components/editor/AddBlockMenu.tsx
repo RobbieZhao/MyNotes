@@ -2,24 +2,11 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
+import { AddBlockModal } from "@/components/editor/AddBlockModal";
 import { useDocumentEditor } from "@/contexts/DocumentEditorContext";
-import { BLOCK_TYPE_LABELS, type BlockType } from "@/types/blocks";
-
-const BLOCK_TYPES: BlockType[] = [
-  "text",
-  "code",
-  "todo_list",
-  "multi_select",
-  "line_chart",
-  "pie_chart",
-  "bar_chart_race",
-  "data_table",
-];
+import type { BlockType } from "@/types/blocks";
 
 interface AddBlockMenuProps {
   groupId?: string | null;
@@ -33,10 +20,9 @@ export function AddBlockMenu({
   compact = false,
 }: AddBlockMenuProps) {
   const { addBlock } = useDocumentEditor();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [open, setOpen] = useState(false);
 
   const handleSelect = async (type: BlockType) => {
-    setAnchorEl(null);
     await addBlock(type, groupId);
   };
 
@@ -46,7 +32,7 @@ export function AddBlockMenu({
         <Button
           size="small"
           startIcon={<AddIcon />}
-          onClick={(e) => setAnchorEl(e.currentTarget)}
+          onClick={() => setOpen(true)}
           sx={{ fontSize: 12, textTransform: "none" }}
         >
           {label}
@@ -56,19 +42,13 @@ export function AddBlockMenu({
           variant="outlined"
           fullWidth
           startIcon={<AddIcon />}
-          onClick={(e) => setAnchorEl(e.currentTarget)}
+          onClick={() => setOpen(true)}
           size="small"
         >
           {label}
         </Button>
       )}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-        {BLOCK_TYPES.map((type) => (
-          <MenuItem key={type} onClick={() => void handleSelect(type)}>
-            {BLOCK_TYPE_LABELS[type]}
-          </MenuItem>
-        ))}
-      </Menu>
+      <AddBlockModal open={open} onClose={() => setOpen(false)} onSelect={(type) => void handleSelect(type)} />
     </Box>
   );
 }

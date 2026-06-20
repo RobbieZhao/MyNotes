@@ -2,6 +2,7 @@ export type BlockType =
   | "text"
   | "code"
   | "todo_list"
+  | "timeline"
   | "dataset"
   | "multi_select"
   | "country_selector"
@@ -96,10 +97,27 @@ export interface TodoListBlockData {
   items: TodoItem[];
 }
 
+export type TimelineItemStatus = "default" | "milestone" | "highlight";
+
+export interface TimelineItem {
+  id: string;
+  date: string;
+  title: string;
+  description?: string;
+  status?: TimelineItemStatus;
+}
+
+export interface TimelineBlockData {
+  title: string;
+  showTitle?: boolean;
+  items: TimelineItem[];
+}
+
 export type BlockData =
   | TextBlockData
   | CodeBlockData
   | TodoListBlockData
+  | TimelineBlockData
   | DatasetBlockData
   | MultiSelectBlockData
   | LineChartBlockData
@@ -121,6 +139,7 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   text: "Text",
   code: "Code",
   todo_list: "Todo List",
+  timeline: "Timeline",
   dataset: "Dataset",
   multi_select: "Multi Select",
   country_selector: "Multi Select",
@@ -134,6 +153,7 @@ export const DEFAULT_BLOCK_DATA: Record<BlockType, BlockData> = {
   text: { content: "" },
   code: { code: "", language: "typescript", showLineNumbers: true },
   todo_list: { title: "Things to do", showTitle: true, items: [] },
+  timeline: { title: "Timeline", showTitle: true, items: [] },
   dataset: { datasetId: "" },
   multi_select: { datasetId: "", label: "Select options" },
   country_selector: { datasetId: "", label: "Select options" },

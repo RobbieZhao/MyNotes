@@ -7,7 +7,6 @@ import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
 import Typography from "@mui/material/Typography";
 import PauseIcon from "@mui/icons-material/Pause";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { getColor } from "@/lib/d3/colors";
 import {
@@ -115,7 +114,7 @@ export function BarChartRace({
 }: BarChartRaceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const [finished, setFinished] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [timeMs, setTimeMs] = useState(0);
@@ -130,11 +129,22 @@ export function BarChartRace({
     displayRanksRef.current = new Map();
   }, []);
 
+  const framesKey = useMemo(
+    () =>
+      frames
+        .map(
+          (f) =>
+            `${f.key}:${f.bars.map((b) => `${b.label}=${b.value}`).join(",")}`
+        )
+        .join("|"),
+    [frames]
+  );
+
   useEffect(() => {
     activeSpeedRef.current = 1;
     resetPlayback();
-    setPlaying(true);
-  }, [frames, resetPlayback]);
+    setPlaying(false);
+  }, [framesKey, resetPlayback]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -214,13 +224,6 @@ export function BarChartRace({
     };
   }, [playing, finished, frames.length, tick]);
 
-  const handlePlay = () => {
-    if (finished) return;
-    setPlaying(true);
-  };
-
-  const handlePause = () => setPlaying(false);
-
   const handleReplay = () => {
     activeSpeedRef.current = speed;
     resetPlayback();
@@ -236,7 +239,7 @@ export function BarChartRace({
   const ranked = (() => {
     const targetRanks = new Map(targetRanked.map((b, i) => [b.label, i]));
 
-    if (finished) {
+    if (finished || !playing) {
       displayRanksRef.current = targetRanks;
       return targetRanked.map((bar) => ({ ...bar, displayRank: bar.rank }));
     }
@@ -519,17 +522,13 @@ export function BarChartRace({
           height: CONTROLS_HEIGHT,
         }}
       >
-        {finished ? (
-          <IconButton size="small" onClick={handleReplay} aria-label="Replay">
-            <ReplayIcon />
-          </IconButton>
-        ) : playing ? (
-          <IconButton size="small" onClick={handlePause} aria-label="Pause">
+        {playing ? (
+          <IconButton size="small" onClick={() => setPlaying(false)} aria-label="Pause">
             <PauseIcon />
           </IconButton>
         ) : (
-          <IconButton size="small" onClick={handlePlay} aria-label="Play">
-            <PlayArrowIcon />
+          <IconButton size="small" onClick={handleReplay} aria-label="Replay">
+            <ReplayIcon />
           </IconButton>
         )}
 

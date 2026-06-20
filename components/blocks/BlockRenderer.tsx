@@ -9,6 +9,7 @@ import type {
   MultiSelectBlockData,
   PieChartBlockData,
   TodoListBlockData,
+  TimelineBlockData,
 } from "@/types/blocks";
 import type { BlockRow, Dataset } from "@/types/database";
 import { BarChartRaceBlockEditor, BarChartRaceBlockPreview } from "./BarChartRaceBlock";
@@ -19,6 +20,7 @@ import { LineChartBlockEditor, LineChartBlockPreview } from "./LineChartBlock";
 import { MultiSelectBlockEditor, MultiSelectBlockPreview } from "./MultiSelectBlock";
 import { PieChartBlockEditor, PieChartBlockPreview } from "./PieChartBlock";
 import { TextBlockEditor, TextBlockPreview } from "./TextBlock";
+import { TimelineBlockEditor, TimelineBlockPreview } from "./TimelineBlock";
 import { TodoListBlockEditor, TodoListBlockPreview } from "./TodoListBlock";
 
 interface BlockEditorProps {
@@ -47,6 +49,13 @@ export function BlockEditor({ block, datasets, onChange }: BlockEditorProps) {
       return (
         <TodoListBlockEditor
           data={block.data as TodoListBlockData}
+          onChange={onChange}
+        />
+      );
+    case "timeline":
+      return (
+        <TimelineBlockEditor
+          data={block.data as TimelineBlockData}
           onChange={onChange}
         />
       );
@@ -121,6 +130,13 @@ export function BlockPreview({ block, datasets, allBlocks }: BlockPreviewProps) 
         <TodoListBlockPreview
           block={block}
           data={block.data as TodoListBlockData}
+        />
+      );
+    case "timeline":
+      return (
+        <TimelineBlockPreview
+          block={block}
+          data={block.data as TimelineBlockData}
         />
       );
     case "dataset":
