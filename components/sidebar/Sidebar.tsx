@@ -116,8 +116,8 @@ export function Sidebar({ documents, onDocumentsChange }: SidebarProps) {
 
         <List dense disablePadding sx={{ px: 1, py: 0.5 }}>
           <ListItemButton
-            selected={pathname === "/documents/datasets"}
-            onClick={() => router.push("/documents/datasets")}
+            selected={pathname.startsWith("/datasets")}
+            onClick={() => router.push("/datasets")}
             sx={{ borderRadius: 1 }}
           >
             <ListItemIcon sx={{ minWidth: 36 }}>

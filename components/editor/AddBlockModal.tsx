@@ -31,7 +31,7 @@ export const BLOCK_CATEGORIES: BlockCategory[] = [
     id: "visualization",
     label: "Visualizations",
     icon: <BarChartOutlinedIcon fontSize="small" />,
-    blocks: ["line_chart", "pie_chart", "bar_chart_race"],
+    blocks: ["line_chart", "pie_chart", "bar_chart_race", "choropleth_map"],
   },
   {
     id: "interactive",

@@ -45,7 +45,7 @@ export function DatasetPicker({
         </ListSubheader>
         <MenuItem
           component={Link}
-          href="/documents/datasets"
+          href="/datasets/import"
           sx={{ gap: 1, color: "primary.main" }}
         >
           <StorageOutlinedIcon sx={{ fontSize: 18 }} />

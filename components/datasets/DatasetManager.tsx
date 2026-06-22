@@ -19,18 +19,25 @@ import EditIcon from "@mui/icons-material/Edit";
 import UploadIcon from "@mui/icons-material/Upload";
 import { DatasetConfigFields } from "@/components/datasets/DatasetConfigEditor";
 import { parseCsv, getDatasetColumns } from "@/lib/datasets/csv";
+import { defaultLabelColumn } from "@/lib/datasets/layout";
 import type { Dataset } from "@/types/database";
 import {
   DATA_LAYOUT_LABELS,
+  DataLayout,
   DEFAULT_DATASET_CONFIG,
   normalizeDatasetConfig,
-  type DatasetConfig,
+  type LegacyDatasetConfig,
+  type StoredDatasetConfig,
 } from "@/types/dataset";
 
 interface DatasetManagerProps {
   datasets: Dataset[];
-  onCreate: (name: string, data: Dataset["data"], config: DatasetConfig) => Promise<Dataset | null>;
-  onUpdateConfig: (id: string, config: DatasetConfig) => Promise<void>;
+  onCreate: (
+    name: string,
+    data: Dataset["data"],
+    config: StoredDatasetConfig
+  ) => Promise<Dataset | null>;
+  onUpdateConfig: (id: string, config: StoredDatasetConfig) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
 
@@ -45,7 +52,7 @@ export function DatasetManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [csvText, setCsvText] = useState("");
-  const [config, setConfig] = useState<DatasetConfig>(DEFAULT_DATASET_CONFIG);
+  const [config, setConfig] = useState<LegacyDatasetConfig>(DEFAULT_DATASET_CONFIG);
 
   const previewRows = csvText.trim() ? parseCsv(csvText).rows : [];
   const previewColumns = getDatasetColumns(previewRows);
@@ -70,13 +77,17 @@ export function DatasetManager({
     if (!name.trim() || rows.length === 0) return;
 
     const columns = getDatasetColumns(rows);
-    const finalConfig: DatasetConfig = {
+    const finalConfig: LegacyDatasetConfig = {
       ...config,
       keyColumn:
-        config.layout === "columns_are_series"
+        config.layout === DataLayout.ColumnsAreSeries
           ? config.keyColumn ?? columns[0]
-          : undefined,
-      column: config.layout === "rows_are_records" ? config.column : undefined,
+          : config.layout === DataLayout.RowsAreSeries
+            ? config.keyColumn ?? defaultLabelColumn(columns)
+            : undefined,
+      column: config.layout === DataLayout.RowsAreRecords ? config.column : undefined,
+      excludeColumns:
+        config.layout === DataLayout.RowsAreSeries ? config.excludeColumns : undefined,
     };
 
     const created = await onCreate(name.trim(), rows, finalConfig);

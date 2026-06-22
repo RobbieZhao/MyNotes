@@ -156,6 +156,37 @@ function BarChartRacePreview() {
   );
 }
 
+function ChoroplethMapPreview() {
+  return (
+    <PreviewFrame>
+      <rect x="10" y="12" width="140" height="76" rx="4" fill="#dce8f5" />
+      <path
+        d="M28,52 L38,38 L52,42 L58,34 L72,36 L80,28 L96,32 L108,40 L118,48 L112,58 L98,62 L82,68 L68,64 L52,60 L38,58 Z"
+        fill="#1565c0"
+        opacity="0.85"
+      />
+      <path
+        d="M30,70 L44,66 L50,72 L42,78 Z"
+        fill="#42a5f5"
+        opacity="0.7"
+      />
+      <path
+        d="M88,52 L100,46 L108,54 L96,60 Z"
+        fill="#90caf9"
+        opacity="0.8"
+      />
+      <rect x="118" y="18" width="28" height="6" rx="2" fill="url(#choropleth-preview-grad)" />
+      <defs>
+        <linearGradient id="choropleth-preview-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#e3f2fd" />
+          <stop offset="100%" stopColor="#1565c0" />
+        </linearGradient>
+      </defs>
+      <rect x="118" y="28" width="28" height="3" rx="1" fill="#bdbdbd" />
+    </PreviewFrame>
+  );
+}
+
 function DataTablePreview() {
   return (
     <PreviewFrame>
@@ -192,6 +223,7 @@ const PREVIEW_MAP: Partial<Record<BlockType, () => ReactNode>> = {
   line_chart: LineChartPreview,
   pie_chart: PieChartPreview,
   bar_chart_race: BarChartRacePreview,
+  choropleth_map: ChoroplethMapPreview,
   data_table: DataTablePreview,
 };
 
@@ -216,5 +248,6 @@ export const BLOCK_DESCRIPTIONS: Partial<Record<BlockType, string>> = {
   line_chart: "Track trends and time series over continuous data",
   pie_chart: "Show proportions and composition at a glance",
   bar_chart_race: "Animated ranking bars that change over time",
+  choropleth_map: "Interactive map colored by regional data — world countries or US states",
   data_table: "Sortable, searchable tabular data views",
 };

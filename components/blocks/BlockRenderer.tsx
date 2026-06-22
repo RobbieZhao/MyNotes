@@ -4,6 +4,7 @@ import type {
   BarChartRaceBlockData,
   BlockData,
   BlockType,
+  ChoroplethMapBlockData,
   CodeBlockData,
   LineChartBlockData,
   MultiSelectBlockData,
@@ -13,9 +14,9 @@ import type {
 } from "@/types/blocks";
 import type { BlockRow, Dataset } from "@/types/database";
 import { BarChartRaceBlockEditor, BarChartRaceBlockPreview } from "./BarChartRaceBlock";
+import { ChoroplethMapBlockEditor, ChoroplethMapBlockPreview } from "./ChoroplethMapBlock";
 import { CodeBlockEditor, CodeBlockPreview } from "./CodeBlock";
 import { DataTableBlockEditor, DataTableBlockPreview } from "./DataTableBlock";
-import { DatasetBlockEditor, DatasetBlockPreview } from "./DatasetBlock";
 import { LineChartBlockEditor, LineChartBlockPreview } from "./LineChartBlock";
 import { MultiSelectBlockEditor, MultiSelectBlockPreview } from "./MultiSelectBlock";
 import { PieChartBlockEditor, PieChartBlockPreview } from "./PieChartBlock";
@@ -59,16 +60,7 @@ export function BlockEditor({ block, datasets, onChange }: BlockEditorProps) {
           onChange={onChange}
         />
       );
-    case "dataset":
-      return (
-        <DatasetBlockEditor
-          data={block.data as { datasetId: string }}
-          onChange={onChange}
-          datasets={datasets}
-        />
-      );
     case "multi_select":
-    case "country_selector":
       return (
         <MultiSelectBlockEditor
           data={block.data as MultiSelectBlockData}
@@ -96,6 +88,14 @@ export function BlockEditor({ block, datasets, onChange }: BlockEditorProps) {
       return (
         <BarChartRaceBlockEditor
           data={block.data as BarChartRaceBlockData}
+          onChange={onChange}
+          datasets={datasets}
+        />
+      );
+    case "choropleth_map":
+      return (
+        <ChoroplethMapBlockEditor
+          data={block.data as ChoroplethMapBlockData}
           onChange={onChange}
           datasets={datasets}
         />
@@ -139,15 +139,7 @@ export function BlockPreview({ block, datasets, allBlocks }: BlockPreviewProps) 
           data={block.data as TimelineBlockData}
         />
       );
-    case "dataset":
-      return (
-        <DatasetBlockPreview
-          data={block.data as { datasetId: string }}
-          datasets={datasets}
-        />
-      );
     case "multi_select":
-    case "country_selector":
       return (
         <MultiSelectBlockPreview
           data={block.data as MultiSelectBlockData}
@@ -176,6 +168,14 @@ export function BlockPreview({ block, datasets, allBlocks }: BlockPreviewProps) 
       return (
         <BarChartRaceBlockPreview
           data={block.data as BarChartRaceBlockData}
+          datasets={datasets}
+          groupId={block.group_id}
+        />
+      );
+    case "choropleth_map":
+      return (
+        <ChoroplethMapBlockPreview
+          data={block.data as ChoroplethMapBlockData}
           datasets={datasets}
           groupId={block.group_id}
         />

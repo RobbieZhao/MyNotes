@@ -86,20 +86,8 @@ export function getGroupById(groups: BlockGroup[], groupId: string): BlockGroup 
   return groups.find((group) => group.id === groupId);
 }
 
-const HIDDEN_BLOCK_TYPES = new Set<BlockRow["type"]>(["dataset"]);
-
 export function buildDisplayOutline(outline: OutlineNode[]): OutlineNode[] {
-  return outline
-    .map((node) => {
-      if (node.kind === "block") {
-        return HIDDEN_BLOCK_TYPES.has(node.block.type) ? null : node;
-      }
-      return {
-        ...node,
-        blocks: node.blocks.filter((block) => !HIDDEN_BLOCK_TYPES.has(block.type)),
-      };
-    })
-    .filter((node): node is OutlineNode => node !== null);
+  return outline;
 }
 
 export function findGroupIdForBlock(outline: OutlineNode[], blockId: string): string | null {

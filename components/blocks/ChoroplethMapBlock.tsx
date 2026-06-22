@@ -9,28 +9,41 @@ import Select from "@mui/material/Select";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { PieChart } from "@/components/charts/PieChart";
+import { ChoroplethMap } from "@/components/charts/ChoroplethMap";
 import { ColumnPicker } from "@/components/datasets/ColumnPicker";
 import { DatasetPicker } from "@/components/datasets/DatasetPicker";
 import { YearPicker } from "@/components/datasets/YearPicker";
 import { PIE_VALUE_SCALE_LABELS, type PieValueScale } from "@/lib/d3/format";
-import { getPieChartSlices } from "@/lib/datasets/interpret";
-import type { PieChartBlockData } from "@/types/blocks";
+import { getChoroplethFrames, getChoroplethRegions } from "@/lib/datasets/interpret";
+import type { ChoroplethColorScheme, ChoroplethMapBlockData, MapRegion } from "@/types/blocks";
 import { DataLayout, describeDatasetLayout, isWideTimeLayout, normalizeDatasetConfig } from "@/types/dataset";
-import type { BlockRow, Dataset } from "@/types/database";
+import type { Dataset } from "@/types/database";
 import { useGroupRuntime } from "@/contexts/DocumentRuntimeContext";
 
-interface PieChartBlockEditorProps {
-  data: PieChartBlockData;
-  onChange: (data: PieChartBlockData) => void;
+const MAP_REGION_LABELS: Record<MapRegion, string> = {
+  world: "World (countries)",
+  usa: "United States (states)",
+};
+
+const COLOR_SCHEME_LABELS: Record<ChoroplethColorScheme, string> = {
+  blues: "Ocean blues",
+  teal: "Teal gradient",
+  orange: "Warm orange",
+  purple: "Royal purple",
+  viridis: "Viridis",
+};
+
+interface ChoroplethMapBlockEditorProps {
+  data: ChoroplethMapBlockData;
+  onChange: (data: ChoroplethMapBlockData) => void;
   datasets: Dataset[];
 }
 
-export function PieChartBlockEditor({
+export function ChoroplethMapBlockEditor({
   data,
   onChange,
   datasets,
-}: PieChartBlockEditorProps) {
+}: ChoroplethMapBlockEditorProps) {
   const dataset = datasets.find((d) => d.id === data.datasetId);
   const config = dataset ? normalizeDatasetConfig(dataset.config) : null;
 
@@ -68,7 +81,7 @@ export function PieChartBlockEditor({
             datasetId={data.datasetId}
             value={data.labelColumn ?? ""}
             onChange={(labelColumn) => onChange({ ...data, labelColumn })}
-            label="Label column"
+            label="Region column"
           />
           <ColumnPicker
             datasets={datasets}
@@ -81,8 +94,27 @@ export function PieChartBlockEditor({
       )}
 
       <Typography variant="subtitle2" sx={{ mt: 1 }}>
-        Chart appearance
+        Map appearance
       </Typography>
+      <FormControl fullWidth size="small">
+        <InputLabel>Map region</InputLabel>
+        <Select
+          label="Map region"
+          value={data.mapRegion ?? "world"}
+          onChange={(e) => onChange({ ...data, mapRegion: e.target.value as MapRegion })}
+        >
+          {(Object.keys(MAP_REGION_LABELS) as MapRegion[]).map((region) => (
+            <MenuItem key={region} value={region}>
+              {MAP_REGION_LABELS[region]}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {data.mapRegion === "usa" && (
+        <Typography variant="caption" color="text.secondary">
+          Region columns should use state names (e.g. California) or abbreviations (e.g. CA).
+        </Typography>
+      )}
       <TextField
         label="Title"
         value={data.title ?? ""}
@@ -90,6 +122,22 @@ export function PieChartBlockEditor({
         size="small"
         fullWidth
       />
+      <FormControl fullWidth size="small">
+        <InputLabel>Color scheme</InputLabel>
+        <Select
+          label="Color scheme"
+          value={data.colorScheme ?? "blues"}
+          onChange={(e) =>
+            onChange({ ...data, colorScheme: e.target.value as ChoroplethColorScheme })
+          }
+        >
+          {(Object.keys(COLOR_SCHEME_LABELS) as ChoroplethColorScheme[]).map((scheme) => (
+            <MenuItem key={scheme} value={scheme}>
+              {COLOR_SCHEME_LABELS[scheme]}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
       <FormControl fullWidth size="small">
         <InputLabel>Value scale</InputLabel>
         <Select
@@ -111,27 +159,29 @@ export function PieChartBlockEditor({
             onChange={(e) => onChange({ ...data, showLegend: e.target.checked })}
           />
         }
-        label="Show legend"
+        label="Show color legend"
       />
-      <FormControlLabel
-        control={
-          <Switch
-            checked={data.showLabels !== false}
-            onChange={(e) => onChange({ ...data, showLabels: e.target.checked })}
-          />
-        }
-        label="Show percentages on slices"
-      />
+      {config && isWideTimeLayout(config.layout) && (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={data.enableAnimation !== false}
+              onChange={(e) => onChange({ ...data, enableAnimation: e.target.checked })}
+            />
+          }
+          label="Animate over time (when not linked to line chart)"
+        />
+      )}
     </Box>
   );
 }
 
-export function PieChartBlockPreview({
+export function ChoroplethMapBlockPreview({
   data,
   datasets,
   groupId,
 }: {
-  data: PieChartBlockData;
+  data: ChoroplethMapBlockData;
   datasets: Dataset[];
   groupId?: string | null;
 }) {
@@ -143,18 +193,38 @@ export function PieChartBlockPreview({
   const sliceYear =
     groupId && selectedX !== null ? selectedX : data.sliceYear;
 
-  const slices = getPieChartSlices(dataset.data, config, data, {
+  const selectedSeries = selectedValues.length ? selectedValues : undefined;
+
+  const regions = getChoroplethRegions(dataset.data, config, data, {
     sliceYear,
-    selectedSeries: selectedValues.length ? selectedValues : undefined,
+    selectedSeries,
   });
 
+  const { frames, keyLabel } = getChoroplethFrames(
+    dataset.data,
+    config,
+    data,
+    selectedSeries
+  );
+
+  const useAnimation =
+    data.enableAnimation !== false &&
+    !(groupId && selectedX !== null) &&
+    isWideTimeLayout(config.layout) &&
+    sliceYear === undefined;
+
   return (
-    <PieChart
-      slices={slices}
+    <ChoroplethMap
+      regions={regions}
+      frames={useAnimation ? frames : []}
+      mapRegion={data.mapRegion ?? "world"}
+      keyLabel={keyLabel}
       title={data.title}
       valueScale={data.valueScale ?? "auto"}
       showLegend={data.showLegend !== false}
-      showLabels={data.showLabels !== false}
+      colorScheme={data.colorScheme ?? "blues"}
+      enableAnimation={useAnimation}
+      highlightedLabels={selectedSeries ?? []}
     />
   );
 }

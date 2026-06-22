@@ -1,8 +1,28 @@
-import type { BarChartRaceBlockData, LineChartBlockData, PieChartBlockData } from "@/types/blocks";
+import { resolveRegionId } from "@/lib/geo/regions";
+import type {
+  BarChartRaceBlockData,
+  ChoroplethMapBlockData,
+  LineChartBlockData,
+  PieChartBlockData,
+} from "@/types/blocks";
 import type { DatasetConfig } from "@/types/dataset";
-import { normalizeDatasetConfig } from "@/types/dataset";
+import { DataLayout, normalizeDatasetConfig } from "@/types/dataset";
 import type { DatasetRow } from "@/types/database";
-import { getDatasetColumns } from "./csv";
+import {
+  defaultKeyColumn,
+  getAvailableTimeKeys,
+  getSeriesColumns,
+  getTimeColumns,
+  getKeyColumnValues,
+} from "./layout";
+import { readDatasetValue } from "./values";
+
+export {
+  getAvailableTimeKeys,
+  getKeyColumnValues,
+  getTimeColumnValues,
+  getTimeColumns,
+} from "./layout";
 
 export interface LineChartSeries {
   key: string;
@@ -14,23 +34,22 @@ export interface PieChartSlice {
   value: number;
 }
 
-function getSeriesColumns(rows: DatasetRow[], keyColumn: string): string[] {
-  return getDatasetColumns(rows).filter((col) => col !== keyColumn);
-}
-
-function defaultKeyColumn(rows: DatasetRow[]): string {
-  return getDatasetColumns(rows)[0] ?? "";
-}
-
 export function getMultiSelectOptions(
   rows: DatasetRow[],
   datasetConfig: DatasetConfig
 ): string[] {
   const config = normalizeDatasetConfig(datasetConfig);
 
-  if (config.layout === "columns_are_series") {
+  if (config.layout === DataLayout.ColumnsAreSeries) {
     const keyColumn = config.keyColumn || defaultKeyColumn(rows);
-    return getDatasetColumns(rows).filter((col) => col !== keyColumn);
+    return getSeriesColumns(rows, keyColumn);
+  }
+
+  if (config.layout === DataLayout.RowsAreSeries) {
+    const labelColumn = config.keyColumn || defaultKeyColumn(rows);
+    return [
+      ...new Set(rows.map((row) => String(row[labelColumn] ?? "")).filter(Boolean)),
+    ];
   }
 
   if (!config.column) return [];
@@ -47,7 +66,7 @@ export function getLineChartSeries(
 ): { series: LineChartSeries[]; xLabel: string; yLabel: string } {
   const config = normalizeDatasetConfig(datasetConfig);
 
-  if (config.layout === "columns_are_series") {
+  if (config.layout === DataLayout.ColumnsAreSeries) {
     const keyColumn = config.keyColumn || defaultKeyColumn(rows);
     if (!keyColumn) return { series: [], xLabel: "", yLabel: "Value" };
 
@@ -61,12 +80,41 @@ export function getLineChartSeries(
       points: rows
         .map((row) => ({
           x: Number(row[keyColumn]),
-          y: Number(row[col]),
+          y: readDatasetValue(row[col], config),
         }))
         .filter((p) => !Number.isNaN(p.x) && !Number.isNaN(p.y)),
     }));
 
     return { series, xLabel: keyColumn, yLabel: "Value" };
+  }
+
+  if (config.layout === DataLayout.RowsAreSeries) {
+    const labelColumn = config.keyColumn || defaultKeyColumn(rows);
+    const timeColumns = getTimeColumns(rows, config);
+    const allLabels = [
+      ...new Set(rows.map((row) => String(row[labelColumn] ?? "")).filter(Boolean)),
+    ];
+    const active = selectedSeries.length
+      ? selectedSeries.filter((s) => allLabels.includes(s))
+      : allLabels;
+
+    const series = active
+      .map((label) => {
+        const row = rows.find((r) => String(r[labelColumn]) === label);
+        if (!row) return { key: label, points: [] as { x: number; y: number }[] };
+        return {
+          key: label,
+          points: timeColumns
+            .map((timeCol) => ({
+              x: Number(timeCol),
+              y: readDatasetValue(row[timeCol], config),
+            }))
+            .filter((p) => !Number.isNaN(p.x) && !Number.isNaN(p.y)),
+        };
+      })
+      .filter((s) => s.points.length > 0);
+
+    return { series, xLabel: "Year", yLabel: "Value" };
   }
 
   const xColumn = blockConfig.xColumn ?? "";
@@ -93,7 +141,7 @@ export function getLineChartSeries(
         .filter((row) => String(row[dimColumn]) === key)
         .map((row) => ({
           x: Number(row[xColumn]),
-          y: Number(row[yColumn]),
+          y: readDatasetValue(row[yColumn], config),
         }))
         .filter((p) => !Number.isNaN(p.x) && !Number.isNaN(p.y)),
     }));
@@ -108,7 +156,7 @@ export function getLineChartSeries(
         points: filtered
           .map((row) => ({
             x: Number(row[xColumn]),
-            y: Number(row[yColumn]),
+            y: readDatasetValue(row[yColumn], config),
           }))
           .filter((p) => !Number.isNaN(p.x) && !Number.isNaN(p.y)),
       },
@@ -129,7 +177,7 @@ export function getPieChartSlices(
 ): PieChartSlice[] {
   const config = normalizeDatasetConfig(datasetConfig);
 
-  if (config.layout === "columns_are_series") {
+  if (config.layout === DataLayout.ColumnsAreSeries) {
     const keyColumn = config.keyColumn || defaultKeyColumn(rows);
     const sliceYear = options?.sliceYear ?? blockConfig.sliceYear;
     if (!keyColumn || sliceYear === undefined) return [];
@@ -139,8 +187,28 @@ export function getPieChartSlices(
 
     let slices = getSeriesColumns(rows, keyColumn).map((col) => ({
       label: col,
-      value: Number(row[col]) || 0,
+      value: readDatasetValue(row[col], config),
     }));
+
+    if (options?.selectedSeries?.length) {
+      slices = slices.filter((s) => options.selectedSeries!.includes(s.label));
+    }
+
+    return slices;
+  }
+
+  if (config.layout === DataLayout.RowsAreSeries) {
+    const labelColumn = config.keyColumn || defaultKeyColumn(rows);
+    const sliceYear = options?.sliceYear ?? blockConfig.sliceYear;
+    if (!labelColumn || sliceYear === undefined) return [];
+
+    const yearCol = String(sliceYear);
+    let slices = rows
+      .map((row) => ({
+        label: String(row[labelColumn] ?? ""),
+        value: readDatasetValue(row[yearCol], config),
+      }))
+      .filter((s) => s.label);
 
     if (options?.selectedSeries?.length) {
       slices = slices.filter((s) => options.selectedSeries!.includes(s.label));
@@ -156,21 +224,11 @@ export function getPieChartSlices(
   const aggregated = new Map<string, number>();
   for (const row of rows) {
     const label = String(row[labelColumn] ?? "");
-    const value = Number(row[valueColumn]) || 0;
+    const value = readDatasetValue(row[valueColumn], config);
     aggregated.set(label, (aggregated.get(label) ?? 0) + value);
   }
 
   return Array.from(aggregated.entries()).map(([label, value]) => ({ label, value }));
-}
-
-export function getKeyColumnValues(rows: DatasetRow[], keyColumn: string): number[] {
-  return [
-    ...new Set(
-      rows
-        .map((row) => Number(row[keyColumn]))
-        .filter((v) => !Number.isNaN(v))
-    ),
-  ].sort((a, b) => a - b);
 }
 
 export interface BarChartRaceBar {
@@ -191,7 +249,7 @@ export function getBarChartRaceFrames(
 ): { frames: BarChartRaceFrame[]; keyLabel: string; valueLabel: string } {
   const config = normalizeDatasetConfig(datasetConfig);
 
-  if (config.layout === "columns_are_series") {
+  if (config.layout === DataLayout.ColumnsAreSeries) {
     const keyColumn = config.keyColumn || defaultKeyColumn(rows);
     if (!keyColumn) return { frames: [], keyLabel: "", valueLabel: "Value" };
 
@@ -207,7 +265,7 @@ export function getBarChartRaceFrames(
         const bars = activeCols
           .map((col) => ({
             label: col,
-            value: Number(row[col]) || 0,
+            value: readDatasetValue(row[col], config),
           }))
           .filter((b) => b.value > 0 || activeCols.length <= 20);
         return { key, bars };
@@ -216,6 +274,33 @@ export function getBarChartRaceFrames(
       .sort((a, b) => a.key - b.key);
 
     return { frames, keyLabel: keyColumn, valueLabel: "Value" };
+  }
+
+  if (config.layout === DataLayout.RowsAreSeries) {
+    const labelColumn = config.keyColumn || defaultKeyColumn(rows);
+    const timeColumns = getTimeColumns(rows, config);
+    if (!labelColumn || timeColumns.length === 0) {
+      return { frames: [], keyLabel: "Year", valueLabel: "Value" };
+    }
+
+    const activeRows = selectedSeries?.length
+      ? rows.filter((row) => selectedSeries.includes(String(row[labelColumn] ?? "")))
+      : rows;
+
+    const frames = timeColumns
+      .map((timeCol) => ({
+        key: Number(timeCol),
+        bars: activeRows
+          .map((row) => ({
+            label: String(row[labelColumn] ?? ""),
+            value: readDatasetValue(row[timeCol], config),
+          }))
+          .filter((b) => b.label),
+      }))
+      .filter((f) => !Number.isNaN(f.key))
+      .sort((a, b) => a.key - b.key);
+
+    return { frames, keyLabel: "Year", valueLabel: "Value" };
   }
 
   const labelColumn = blockConfig.labelColumn ?? "";
@@ -230,7 +315,7 @@ export function getBarChartRaceFrames(
     const slice = rows.filter((row) => Number(row[keyColumn]) === key);
     let bars = slice.map((row) => ({
       label: String(row[labelColumn] ?? ""),
-      value: Number(row[valueColumn]) || 0,
+      value: readDatasetValue(row[valueColumn], config),
     }));
 
     if (selectedSeries?.length) {
@@ -241,4 +326,64 @@ export function getBarChartRaceFrames(
   });
 
   return { frames, keyLabel: keyColumn, valueLabel: valueColumn };
+}
+
+export interface ChoroplethRegion {
+  id: string;
+  label: string;
+  value: number;
+}
+
+export interface ChoroplethMapFrame {
+  key: number;
+  regions: ChoroplethRegion[];
+}
+
+function labelValuePairsToRegions(
+  pairs: { label: string; value: number }[],
+  mapRegion: ChoroplethMapBlockData["mapRegion"] = "world"
+): ChoroplethRegion[] {
+  const region = mapRegion ?? "world";
+  const regions: ChoroplethRegion[] = [];
+  for (const { label, value } of pairs) {
+    const id = resolveRegionId(label, region);
+    if (!id) continue;
+    regions.push({ id, label, value });
+  }
+  return regions;
+}
+
+export function getChoroplethRegions(
+  rows: DatasetRow[],
+  datasetConfig: DatasetConfig,
+  blockConfig: ChoroplethMapBlockData,
+  options?: {
+    sliceYear?: number;
+    selectedSeries?: string[];
+  }
+): ChoroplethRegion[] {
+  const slices = getPieChartSlices(rows, datasetConfig, blockConfig, options);
+  return labelValuePairsToRegions(slices, blockConfig.mapRegion);
+}
+
+export function getChoroplethFrames(
+  rows: DatasetRow[],
+  datasetConfig: DatasetConfig,
+  blockConfig: ChoroplethMapBlockData,
+  selectedSeries?: string[]
+): { frames: ChoroplethMapFrame[]; keyLabel: string } {
+  const { frames, keyLabel } = getBarChartRaceFrames(
+    rows,
+    datasetConfig,
+    blockConfig,
+    selectedSeries
+  );
+
+  return {
+    frames: frames.map((frame) => ({
+      key: frame.key,
+      regions: labelValuePairsToRegions(frame.bars, blockConfig.mapRegion),
+    })),
+    keyLabel,
+  };
 }

@@ -36,16 +36,28 @@ export function DocumentPreview() {
 
     requestAnimationFrame(() => {
       const el = document.getElementById(`preview-${previewScrollKey}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   }, [previewScrollKey]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <Typography variant="h6" sx={{ mb: 2, pl: 5 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+      <Typography variant="h6" sx={{ mb: 2, pl: 5, flexShrink: 0 }}>
         Live Preview
       </Typography>
-      <Stack spacing={3} sx={{ flex: 1, overflow: "auto", minWidth: 0, pr: 0.5 }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "auto",
+          minWidth: 0,
+          pr: 0.5,
+          pt: 1,
+          pb: 2,
+          scrollPaddingTop: 16,
+        }}
+      >
+        <Stack spacing={3}>
         {displayOutline.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             Preview will appear here as you add blocks.
@@ -57,7 +69,7 @@ export function DocumentPreview() {
                 <Box
                   key={node.block.id}
                   id={`preview-block-${node.block.id}`}
-                  sx={{ scrollMarginTop: 16, position: "relative", zIndex: 1 }}
+                  sx={{ scrollMarginTop: 24, position: "relative", zIndex: 1 }}
                 >
                   <BlockPreview block={node.block} datasets={datasets} allBlocks={blocks} />
                 </Box>
@@ -69,11 +81,10 @@ export function DocumentPreview() {
               <Box
                 key={node.group.id}
                 id={`preview-group-${node.group.id}`}
-                sx={{ scrollMarginTop: 16, position: "relative", zIndex: 3, width: "100%", minWidth: 0 }}
+                sx={{ scrollMarginTop: 24, position: "relative", zIndex: 3, width: "100%", minWidth: 0 }}
               >
                 <BlockGroupFrame
                   label={node.group.name}
-                  blockCount={node.blocks.length}
                   collapsed={collapsed}
                   onToggleCollapsed={() => toggleGroup(node.group.id)}
                 >
@@ -83,7 +94,7 @@ export function DocumentPreview() {
                     </Typography>
                   ) : (
                     node.blocks.map((block) => (
-                      <Box key={block.id} id={`preview-block-${block.id}`} sx={{ scrollMarginTop: 8 }}>
+                      <Box key={block.id} id={`preview-block-${block.id}`} sx={{ scrollMarginTop: 24 }}>
                         <BlockPreview block={block} datasets={datasets} allBlocks={blocks} />
                       </Box>
                     ))
@@ -93,7 +104,8 @@ export function DocumentPreview() {
             );
           })
         )}
-      </Stack>
+        </Stack>
+      </Box>
     </Box>
   );
 }

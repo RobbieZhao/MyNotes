@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import FormControl from "@mui/material/FormControl";
@@ -14,7 +15,7 @@ import { DatasetPicker } from "@/components/datasets/DatasetPicker";
 import { useGroupRuntime } from "@/contexts/DocumentRuntimeContext";
 import { getMultiSelectOptions } from "@/lib/datasets/interpret";
 import type { MultiSelectBlockData } from "@/types/blocks";
-import { normalizeDatasetConfig } from "@/types/dataset";
+import { describeDatasetLayout, DataLayout, normalizeDatasetConfig } from "@/types/dataset";
 import type { Dataset } from "@/types/database";
 
 interface MultiSelectBlockEditorProps {
@@ -40,18 +41,16 @@ export function MultiSelectBlockEditor({
       />
       <TextField
         label="Field label"
-        value={data.label ?? "Select options"}
+        value={data.label ?? ""}
         onChange={(e) => onChange({ ...data, label: e.target.value })}
         size="small"
         fullWidth
-        helperText="Label shown on the multi-select control in preview"
+        placeholder="Optional"
+        helperText="Optional label shown on the multi-select in preview"
       />
       {dataset && config && (
         <Typography variant="caption" color="text.secondary">
-          Options come from dataset layout:{" "}
-          {config.layout === "columns_are_series" ? "Columns are series" : "Rows are records"}
-          {config.keyColumn ? ` (key: ${config.keyColumn})` : ""}
-          {config.column ? ` (category: ${config.column})` : ""}
+          Options come from dataset layout: {describeDatasetLayout(config)}
         </Typography>
       )}
     </Box>
@@ -68,6 +67,7 @@ export function MultiSelectBlockPreview({
   groupId?: string | null;
 }) {
   const { selectedValues, setSelectedValues } = useGroupRuntime(groupId);
+  const labelId = useId();
   const dataset = datasets.find((d) => d.id === data.datasetId);
 
   if (!dataset) return null;
@@ -75,34 +75,54 @@ export function MultiSelectBlockPreview({
   const config = normalizeDatasetConfig(dataset.config);
   const options = getMultiSelectOptions(dataset.data, config);
   const isReady =
-    config.layout === "columns_are_series"
-      ? Boolean(config.keyColumn || options.length > 0)
-      : Boolean(config.column);
+    config.layout === DataLayout.RowsAreRecords
+      ? Boolean(config.column)
+      : Boolean(config.keyColumn || options.length > 0);
 
   if (!isReady) return null;
 
-  const fieldLabel = data.label?.trim() || "Select options";
+  const fieldLabel = data.label?.trim();
+  const hasLabel = Boolean(fieldLabel);
 
   const handleChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     setSelectedValues(typeof value === "string" ? value.split(",") : value);
   };
 
+  const renderValue = (selected: string[]) => {
+    if (selected.length === 0) {
+      return (
+        <Box component="span" sx={{ color: "text.disabled" }}>
+          Optional
+        </Box>
+      );
+    }
+
+    return (
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+        {selected.map((value) => (
+          <Chip key={value} label={value} size="small" />
+        ))}
+      </Box>
+    );
+  };
+
   return (
-    <FormControl fullWidth size="small">
-      <InputLabel>{fieldLabel}</InputLabel>
+    <FormControl fullWidth size="small" variant="outlined">
+      {hasLabel && (
+        <InputLabel id={labelId} shrink>
+          {fieldLabel}
+        </InputLabel>
+      )}
       <Select
         multiple
+        displayEmpty
+        labelId={hasLabel ? labelId : undefined}
+        label={hasLabel ? fieldLabel : undefined}
         value={selectedValues}
         onChange={handleChange}
-        input={<OutlinedInput label={fieldLabel} />}
-        renderValue={(selected) => (
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-            {selected.map((value) => (
-              <Chip key={value} label={value} size="small" />
-            ))}
-          </Box>
-        )}
+        input={hasLabel ? <OutlinedInput label={fieldLabel} /> : <OutlinedInput />}
+        renderValue={renderValue}
       >
         {options.map((option) => (
           <MenuItem key={option} value={option}>
@@ -113,8 +133,3 @@ export function MultiSelectBlockPreview({
     </FormControl>
   );
 }
-
-/** @deprecated Use MultiSelectBlockEditor */
-export const CountrySelectorBlockEditor = MultiSelectBlockEditor;
-/** @deprecated Use MultiSelectBlockPreview */
-export const CountrySelectorBlockPreview = MultiSelectBlockPreview;

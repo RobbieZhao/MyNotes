@@ -17,12 +17,13 @@ import {
   mergeBlockUpdates,
   mergeGroupUpdates,
 } from "@/lib/blocks/reorder";
+import { prepareBlocksForEditor } from "@/lib/blocks/prepareBlocks";
 import { positionForInsertAtEnd } from "@/lib/blocks/position";
 import { useOptionalActiveDocument } from "@/contexts/ActiveDocumentContext";
 import type { BlockData, BlockType } from "@/types/blocks";
 import { DEFAULT_BLOCK_DATA } from "@/types/blocks";
 import type { BlockGroup, BlockRow, Dataset, Document } from "@/types/database";
-import type { DatasetConfig } from "@/types/dataset";
+import type { StoredDatasetConfig } from "@/types/dataset";
 import { useDatasets } from "@/contexts/DatasetsContext";
 
 interface DocumentEditorContextValue {
@@ -51,9 +52,9 @@ interface DocumentEditorContextValue {
   createDataset: (
     name: string,
     data: Dataset["data"],
-    config: DatasetConfig
+    config: StoredDatasetConfig
   ) => Promise<Dataset | null>;
-  updateDatasetConfig: (id: string, config: DatasetConfig) => Promise<void>;
+  updateDatasetConfig: (id: string, config: StoredDatasetConfig) => Promise<void>;
   deleteDataset: (id: string) => Promise<void>;
 }
 
@@ -74,16 +75,45 @@ export function DocumentEditorProvider({
 }: DocumentEditorProviderProps) {
   const supabase = useMemo(() => createClient(), []);
   const activeDocumentCtx = useOptionalActiveDocument();
-  const { datasets, refreshDatasets, createDataset, updateDatasetConfig, deleteDataset } =
-    useDatasets();
+  const {
+    datasets,
+    refreshDatasets,
+    createDataset: createDatasetRaw,
+    updateDatasetConfig: updateDatasetConfigRaw,
+    deleteDataset: deleteDatasetRaw,
+  } = useDatasets();
+
+  const createDataset = useCallback(
+    async (name: string, data: Dataset["data"], config: StoredDatasetConfig) => {
+      const result = await createDatasetRaw(name, data, config);
+      return result.dataset;
+    },
+    [createDatasetRaw]
+  );
+
+  const updateDatasetConfig = useCallback(
+    async (id: string, config: StoredDatasetConfig) => {
+      await updateDatasetConfigRaw(id, config);
+    },
+    [updateDatasetConfigRaw]
+  );
+
+  const deleteDataset = useCallback(
+    async (id: string) => {
+      await deleteDatasetRaw(id);
+    },
+    [deleteDatasetRaw]
+  );
   const [document, setDocument] = useState(initialDocument);
-  const [blocks, setBlocks] = useState(
-    initialBlocks.map((block) => ({ ...block, group_id: block.group_id ?? null }))
+  const [blocks, setBlocks] = useState(() =>
+    prepareBlocksForEditor(
+      initialBlocks.map((block) => ({ ...block, group_id: block.group_id ?? null }))
+    )
   );
   const [blockGroups, setBlockGroups] = useState<BlockGroup[]>(initialBlockGroups);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(() => {
-    const firstVisible = initialBlocks.find((block) => block.type !== "dataset");
-    return firstVisible?.id ?? null;
+    const prepared = prepareBlocksForEditor(initialBlocks);
+    return prepared[0]?.id ?? null;
   });
   const [previewScrollKey, setPreviewScrollKey] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -104,16 +134,6 @@ export function DocumentEditorProvider({
   const orderedBlocks = useMemo(() => flattenOutline(outline), [outline]);
 
   useEffect(() => {
-    if (!selectedBlockId) return;
-    const block = blocks.find((item) => item.id === selectedBlockId);
-    if (block?.type !== "dataset") return;
-    const fallback = displayOutline.flatMap((node) =>
-      node.kind === "block" ? [node.block] : node.blocks
-    )[0];
-    setSelectedBlockId(fallback?.id ?? null);
-  }, [blocks, displayOutline, selectedBlockId]);
-
-  useEffect(() => {
     void (async () => {
       const [groupsResult, blocksResult] = await Promise.all([
         supabase
@@ -129,10 +149,12 @@ export function DocumentEditorProvider({
       }
       if (!blocksResult.error && blocksResult.data) {
         setBlocks(
-          (blocksResult.data as BlockRow[]).map((block) => ({
-            ...block,
-            group_id: block.group_id ?? null,
-          }))
+          prepareBlocksForEditor(
+            (blocksResult.data as BlockRow[]).map((block) => ({
+              ...block,
+              group_id: block.group_id ?? null,
+            }))
+          )
         );
       }
     })();

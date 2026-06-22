@@ -17,7 +17,7 @@ import { Y_AXIS_SCALE_LABELS } from "@/lib/d3/format";
 import { groupHasBlockType } from "@/lib/blocks/outline";
 import { getLineChartSeries } from "@/lib/datasets/interpret";
 import type { LineChartBlockData, YAxisScale } from "@/types/blocks";
-import { normalizeDatasetConfig } from "@/types/dataset";
+import { DataLayout, describeDatasetLayout, normalizeDatasetConfig } from "@/types/dataset";
 import type { BlockRow, Dataset } from "@/types/database";
 
 interface LineChartBlockEditorProps {
@@ -45,12 +45,10 @@ export function LineChartBlockEditor({
       />
       {config && (
         <Typography variant="caption" color="text.secondary">
-          Uses dataset layout:{" "}
-          {config.layout === "columns_are_series" ? "Columns are series" : "Rows are records"}
-          {config.keyColumn ? ` (X axis: ${config.keyColumn})` : ""}
+          Uses dataset layout: {describeDatasetLayout(config)}
         </Typography>
       )}
-      {config?.layout === "rows_are_records" && (
+      {config?.layout === DataLayout.RowsAreRecords && (
         <>
           <ColumnPicker
             datasets={datasets}

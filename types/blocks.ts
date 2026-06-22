@@ -3,12 +3,11 @@ export type BlockType =
   | "code"
   | "todo_list"
   | "timeline"
-  | "dataset"
   | "multi_select"
-  | "country_selector"
   | "line_chart"
   | "pie_chart"
   | "bar_chart_race"
+  | "choropleth_map"
   | "data_table";
 
 export interface TextBlockData {
@@ -22,17 +21,10 @@ export interface CodeBlockData {
   showLineNumbers?: boolean;
 }
 
-export interface DatasetBlockData {
-  datasetId: string;
-}
-
 export interface MultiSelectBlockData {
   datasetId: string;
   label?: string;
 }
-
-/** @deprecated Use MultiSelectBlockData */
-export type CountrySelectorBlockData = MultiSelectBlockData;
 
 export type YAxisScale =
   | "auto"
@@ -80,6 +72,23 @@ export interface BarChartRaceBlockData {
   showValues?: boolean;
 }
 
+export type ChoroplethColorScheme = "blues" | "teal" | "orange" | "purple" | "viridis";
+
+export type MapRegion = "world" | "usa";
+
+export interface ChoroplethMapBlockData {
+  datasetId: string;
+  title?: string;
+  mapRegion?: MapRegion;
+  sliceYear?: number;
+  labelColumn?: string;
+  valueColumn?: string;
+  valueScale?: PieValueScale;
+  showLegend?: boolean;
+  colorScheme?: ChoroplethColorScheme;
+  enableAnimation?: boolean;
+}
+
 export interface DataTableBlockData {
   datasetId: string;
 }
@@ -118,11 +127,11 @@ export type BlockData =
   | CodeBlockData
   | TodoListBlockData
   | TimelineBlockData
-  | DatasetBlockData
   | MultiSelectBlockData
   | LineChartBlockData
   | PieChartBlockData
   | BarChartRaceBlockData
+  | ChoroplethMapBlockData
   | DataTableBlockData;
 
 export interface Block {
@@ -140,12 +149,11 @@ export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   code: "Code",
   todo_list: "Todo List",
   timeline: "Timeline",
-  dataset: "Dataset",
   multi_select: "Multi Select",
-  country_selector: "Multi Select",
   line_chart: "Line Chart",
   pie_chart: "Pie Chart",
   bar_chart_race: "Bar Chart Race",
+  choropleth_map: "Choropleth Map",
   data_table: "Data Table",
 };
 
@@ -154,9 +162,7 @@ export const DEFAULT_BLOCK_DATA: Record<BlockType, BlockData> = {
   code: { code: "", language: "typescript", showLineNumbers: true },
   todo_list: { title: "Things to do", showTitle: true, items: [] },
   timeline: { title: "Timeline", showTitle: true, items: [] },
-  dataset: { datasetId: "" },
-  multi_select: { datasetId: "", label: "Select options" },
-  country_selector: { datasetId: "", label: "Select options" },
+  multi_select: { datasetId: "", label: "" },
   line_chart: { datasetId: "", yAxisScale: "auto", showLegend: true },
   pie_chart: { datasetId: "", valueScale: "auto", showLegend: true, showLabels: true },
   bar_chart_race: {
@@ -165,6 +171,14 @@ export const DEFAULT_BLOCK_DATA: Record<BlockType, BlockData> = {
     orientation: "horizontal",
     maxBars: 10,
     showValues: true,
+  },
+  choropleth_map: {
+    datasetId: "",
+    mapRegion: "world",
+    valueScale: "auto",
+    showLegend: true,
+    colorScheme: "blues",
+    enableAnimation: true,
   },
   data_table: { datasetId: "" },
 };

@@ -1,5 +1,5 @@
 import type { BlockData, BlockType } from "./blocks";
-import type { DatasetConfig } from "./dataset";
+import type { StoredDatasetConfig } from "./dataset";
 
 export interface Document {
   id: string;
@@ -36,7 +36,7 @@ export interface Dataset {
   user_id: string;
   name: string;
   data: DatasetRow[];
-  config: DatasetConfig;
+  config: StoredDatasetConfig;
   created_at: string;
   updated_at: string;
 }

@@ -168,6 +168,8 @@ export function EditorPreviewLayout({ editor, preview }: EditorPreviewLayoutProp
           overflow: "hidden",
           bgcolor: "background.paper",
           position: "relative",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <Tooltip title={prefs.editorVisible ? "Hide block editor" : "Show block editor"}>
@@ -194,7 +196,7 @@ export function EditorPreviewLayout({ editor, preview }: EditorPreviewLayoutProp
             )}
           </IconButton>
         </Tooltip>
-        {preview}
+        <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>{preview}</Box>
       </Box>
     </Box>
   );

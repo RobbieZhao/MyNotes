@@ -26,7 +26,7 @@ export function DocumentsLayoutClient({
       <DatasetsProvider initialDatasets={initialDatasets}>
         <Box sx={{ display: "flex", height: "100vh" }}>
           <Sidebar documents={documents} onDocumentsChange={setDocuments} />
-          <Box component="main" sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          <Box component="main" sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
             {children}
           </Box>
         </Box>

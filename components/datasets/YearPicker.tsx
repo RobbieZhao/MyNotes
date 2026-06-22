@@ -4,14 +4,14 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import { getKeyColumnValues } from "@/lib/datasets/interpret";
+import { getAvailableTimeKeys } from "@/lib/datasets/interpret";
 import type { Dataset } from "@/types/database";
 import { normalizeDatasetConfig } from "@/types/dataset";
 
 interface YearPickerProps {
   datasets: Dataset[];
   datasetId: string;
-  keyColumn: string;
+  keyColumn?: string;
   value: number | undefined;
   onChange: (year: number) => void;
   label?: string;
@@ -27,12 +27,13 @@ export function YearPicker({
 }: YearPickerProps) {
   const dataset = datasets.find((d) => d.id === datasetId);
   const config = dataset ? normalizeDatasetConfig(dataset.config) : null;
-  const effectiveKey = keyColumn || config?.keyColumn || "";
   const years =
-    dataset && effectiveKey ? getKeyColumnValues(dataset.data, effectiveKey) : [];
+    dataset && config ? getAvailableTimeKeys(dataset.data, config) : [];
+
+  const ready = Boolean(datasetId && config && years.length > 0);
 
   return (
-    <FormControl fullWidth size="small" disabled={!datasetId || !effectiveKey}>
+    <FormControl fullWidth size="small" disabled={!ready}>
       <InputLabel>{label}</InputLabel>
       <Select
         label={label}

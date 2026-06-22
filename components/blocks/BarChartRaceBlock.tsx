@@ -15,7 +15,7 @@ import { DatasetPicker } from "@/components/datasets/DatasetPicker";
 import { PIE_VALUE_SCALE_LABELS, type PieValueScale } from "@/lib/d3/format";
 import { getBarChartRaceFrames } from "@/lib/datasets/interpret";
 import type { BarChartRaceBlockData, BarOrientation } from "@/types/blocks";
-import { normalizeDatasetConfig } from "@/types/dataset";
+import { DataLayout, describeDatasetLayout, normalizeDatasetConfig } from "@/types/dataset";
 import type { Dataset } from "@/types/database";
 import { useGroupRuntime } from "@/contexts/DocumentRuntimeContext";
 
@@ -48,12 +48,10 @@ export function BarChartRaceBlockEditor({
       />
       {config && (
         <Typography variant="caption" color="text.secondary">
-          Uses dataset layout:{" "}
-          {config.layout === "columns_are_series" ? "Columns are series" : "Rows are records"}
-          {config.keyColumn ? ` (key: ${config.keyColumn})` : ""}
+          Uses dataset layout: {describeDatasetLayout(config)}
         </Typography>
       )}
-      {config?.layout === "rows_are_records" && (
+      {config?.layout === DataLayout.RowsAreRecords && (
         <>
           <ColumnPicker
             datasets={datasets}
